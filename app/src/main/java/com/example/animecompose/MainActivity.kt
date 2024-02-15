@@ -20,15 +20,16 @@ import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
 import androidx.navigation.compose.rememberNavController
-import com.example.animecompose.pages.CollapsingToolbarExample
 import com.example.animecompose.pages.DetailsPage
 import com.example.animecompose.pages.HomePage
 import com.example.animecompose.ui.theme.AnimeComposeTheme
-import com.example.animecompose.viewmodel.CountViewModel
+import dagger.hilt.android.AndroidEntryPoint
 
+@AndroidEntryPoint
 class MainActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
+
         setContent {
             AnimeComposeTheme {
 
@@ -49,38 +50,11 @@ class MainActivity : ComponentActivity() {
     }
 }
 
-@Composable
-fun Greeting(
-    name: String,
-    modifier: Modifier = Modifier,
-    countViewModel: CountViewModel = viewModel()
-) {
-
-    val count by countViewModel.count.observeAsState()
-    val mutableCount by countViewModel.mutableCount
-
-
-
-
-
-    Column(
-        modifier = Modifier.wrapContentSize(Alignment.Center),
-        horizontalAlignment = Alignment.CenterHorizontally
-    ) {
-
-        Text(text = "Count ${mutableCount}!")
-        Spacer(modifier = Modifier.height(10.dp))
-        Button(onClick = { countViewModel.increase() }) {
-            Text(text = "Add")
-        }
-    }
-}
-
 @Preview(showBackground = true, showSystemUi = true)
 @Composable
 fun DefaultPreview() {
     AnimeComposeTheme {
-        Greeting("Android")
+
 //        HomePage()
     }
 }

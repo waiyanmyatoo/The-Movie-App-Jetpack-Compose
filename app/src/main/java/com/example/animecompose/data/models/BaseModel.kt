@@ -1,6 +1,8 @@
 package com.example.animecompose.data.models
 
+import android.content.Context
 import com.example.animecompose.network.TheMovieApi
+import com.example.animecompose.persistence.MovieAppDatabase
 import com.example.animecompose.utils.BASE_URL
 import hu.akarnokd.rxjava3.retrofit.RxJava3CallAdapterFactory
 import okhttp3.OkHttpClient
@@ -12,6 +14,7 @@ import java.util.concurrent.TimeUnit
 abstract class BaseModel {
 
     protected var mTheMovieApi: TheMovieApi
+//    protected var mMovieDatabase: MovieAppDatabase? = null
 
     init {
         val mOkHttpClient = OkHttpClient.Builder()
@@ -30,4 +33,8 @@ abstract class BaseModel {
         mTheMovieApi = retrofit.create(TheMovieApi::class.java)
 
     }
+
+//    fun initDatabase(context: Context){
+//        mMovieDatabase = MovieAppDatabase.getInstance(context)
+//    }
 }

@@ -1,52 +1,71 @@
 package com.example.animecompose.data.vos
 
+import androidx.room.Entity
+import androidx.room.PrimaryKey
 import com.google.gson.annotations.SerializedName
 
+@Entity
 data class MovieVO(
     @SerializedName("adult")
-    val adult: Boolean?,
+    var adult: Boolean?,
 
     @SerializedName("backdrop_path")
-    val backdropPath: String?,
+    var backdropPath: String?,
 
     @SerializedName("genre_ids")
-    val genreIds: List<Int>?,
+    var genreIds: List<Int>?,
 
     @SerializedName("id")
-    val id: Int = 0,
+    @PrimaryKey
+    var id: Int? = null,
 
     @SerializedName("original_language")
-    val originalLanguage: String?,
+    var originalLanguage: String?,
 
     @SerializedName("original_title")
-    val originalTitle: String?,
+    var originalTitle: String?,
 
     @SerializedName("overview")
-    val overview: String?,
+    var overview: String?,
 
     @SerializedName("popularity")
-    val popularity: Double?,
+    var popularity: Double?,
 
     @SerializedName("poster_path")
-    val posterPath: String?,
+    var posterPath: String?,
 
     @SerializedName("release_date")
-    val releaseDate: String?,
+    var releaseDate: String?,
 
     @SerializedName("title")
-    val title: String?,
+    var title: String?,
 
     @SerializedName("video")
-    val video: Boolean?,
+    var video: Boolean?,
 
     @SerializedName("vote_average")
-    val voteAverage: Double?,
+    var voteAverage: Double?,
 
     @SerializedName("vote_count")
-    val voteCount: Int?,
+    var voteCount: Int?,
 
-){
-    fun getRatingBasedOnFiveStars() : Float {
+
+//    @SerializedName("belongs_to_collection") var belongsToCollection: String? = null,
+    @SerializedName("budget") var budget: Int? = null,
+    @SerializedName("genres") var genres: List<GenresVO>?,
+    @SerializedName("homepage") var homepage: String? = null,
+    @SerializedName("imdb_id") var imdbId: String? = null,
+    @SerializedName("production_companies") var productionCompanies: List<ProductionCompaniesVO>?,
+    @SerializedName("production_countries") var productionCountries: List<ProductionCountriesVO>?,
+
+    @SerializedName("revenue") var revenue: Int? = null,
+    @SerializedName("runtime") var runtime: Int? = null,
+    @SerializedName("spoken_languages") var spokenLanguages: List<SpokenLanguagesVO>?,
+    @SerializedName("status") var status: String? = null,
+    @SerializedName("tagline") var tagline: String? = null,
+
+    ) {
+    fun getRatingBasedOnFiveStars(): Float {
         return voteAverage?.div(2)?.toFloat() ?: 0.0f
     }
 }

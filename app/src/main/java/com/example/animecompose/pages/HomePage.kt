@@ -1,27 +1,53 @@
 package com.example.animecompose.pages
 
+import android.app.Activity
 import android.graphics.PorterDuff
-import android.util.Log
 import android.widget.RatingBar
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
-import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.fillMaxHeight
+import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.layout.wrapContentHeight
+import androidx.compose.foundation.layout.wrapContentSize
+import androidx.compose.foundation.layout.wrapContentWidth
 import androidx.compose.foundation.lazy.LazyRow
 import androidx.compose.foundation.lazy.itemsIndexed
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
-import androidx.compose.material.*
+import androidx.compose.material.Icon
+import androidx.compose.material.IconButton
+import androidx.compose.material.Scaffold
+import androidx.compose.material.ScrollableTabRow
+import androidx.compose.material.Tab
+import androidx.compose.material.TabRowDefaults
+import androidx.compose.material.TabRowDefaults.tabIndicatorOffset
+import androidx.compose.material.Text
+import androidx.compose.material.TopAppBar
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.rounded.Menu
 import androidx.compose.material.icons.rounded.Search
-import androidx.compose.runtime.*
+import androidx.compose.runtime.Composable
+import androidx.compose.runtime.getValue
 import androidx.compose.runtime.livedata.observeAsState
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.toArgb
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.layout.ContentScale
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.colorResource
 import androidx.compose.ui.res.dimensionResource
 import androidx.compose.ui.res.stringResource
@@ -35,37 +61,49 @@ import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.compose.ui.viewinterop.AndroidView
-import androidx.lifecycle.viewmodel.compose.viewModel
+import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.navigation.NavController
 import coil.compose.AsyncImage
+import com.example.animecompose.MovieDetailsActivity
 import com.example.animecompose.R
 import com.example.animecompose.adapters.BannerAdapter
 import com.example.animecompose.components.BannerView
+import com.example.animecompose.components.CircularProgressIndicatorView
+import com.example.animecompose.components.MovieActorsListSection
+import com.example.animecompose.data.vos.ActorVO
+import com.example.animecompose.data.vos.GenresVO
 import com.example.animecompose.data.vos.MovieVO
 import com.example.animecompose.state.UiState
 import com.example.animecompose.ui.theme.AnimeComposeTheme
 import com.example.animecompose.utils.IMAGE_BASE_URL
-import com.example.animecompose.viewHolders.HomeViewModel
+import com.example.animecompose.utils.colorR
+import com.example.animecompose.viewmodel.HomeViewModel
 
 @Composable
 fun HomePage(
     modifier: Modifier = Modifier,
-    homeViewModel: HomeViewModel = viewModel(),
-    navController: NavController
-) {
+    homeViewModel: HomeViewModel = hiltViewModel(),
+    navController: NavController,
+
+    ) {
 
     val movieList by homeViewModel.nowPlayingMoviesLiveData.observeAsState()
     val popularMovieList by homeViewModel.popularMoviesLiveData.observeAsState()
+    val genres by homeViewModel.genres.observeAsState()
+    val actorList by homeViewModel.actorList.observeAsState()
+    val moviesByGenres by homeViewModel.moviesByGenre.observeAsState()
 
-    var tabIndex by remember { mutableStateOf(0) }
+    val activity = LocalContext.current as Activity
 
-    val tabs = listOf("Home", "About", "Settings")
+    var selectedGenreIndex by remember { mutableStateOf(0) }
 
-    Log.i("Reload TAG", "HomePage: ")
-
-    LaunchedEffect(Unit) {
-        Log.i("Reload effect TAG", "HomePage: ")
-//        homeViewModel.getInitialData()
+    fun navigateToDetails(id: Int) {
+        activity.startActivity(
+            MovieDetailsActivity.newIntent(
+                activity.applicationContext,
+                id
+            )
+        )
     }
 
 
@@ -93,27 +131,57 @@ fun HomePage(
                         sectionTitle = stringResource(id = R.string.lbl_best_popular_films_and_serials),
                         movieList = popularMovieList,
                         onClickMovie = {
-                            navController.navigate("Details")
+//                            navController.navigate("Details")
+                            it.id?.let { id ->
+                                navigateToDetails(id)
+
+                            }
+
                         }
                     )
                     Spacer(modifier = Modifier.height(20.dp))
                     MoviesTimeSection()
                     Spacer(modifier = Modifier.height(20.dp))
-                    ScrollableTabRow(selectedTabIndex = 0) {
-                        tabs.forEachIndexed { index, title ->
-                            Tab(text = { Text(title) },
-                                selected = tabIndex == index,
-                                onClick = { tabIndex = index }
-                            )
-                        }
-                    }
+                    GenresView(
+                        genres, selectedGenreIndex,
+                        { index, id ->
+                            selectedGenreIndex = index ?: 0
+                            homeViewModel.getMoviesByGenres(id?.toString())
+                        },
+                    )
                     HorizontalMovieSection(
-                        sectionTitle = stringResource(id = R.string.lbl_best_popular_films_and_serials),
-                        movieList = popularMovieList,
+                        modifier = Modifier
+                            .background(R.color.colorPrimaryDark.colorR())
+                            .padding(bottom = 20.dp),
+                        movieList = moviesByGenres,
+                        sectionTitle = null,
                         onClickMovie = {
+                            it.id?.let { id ->
+                                navigateToDetails(id)
+                            }
 
                         }
                     )
+                    Spacer(modifier = Modifier.height(20.dp))
+
+                    when (actorList) {
+                        is UiState.Loading -> CircularProgressIndicatorView()
+                        is UiState.Error -> {
+                            Text(
+                                text = "${(actorList as UiState.Error).error}",
+                                color = Color.White
+                            )
+                        }
+
+                        is UiState.Success -> {
+                            MovieActorsListSection(peopleList = (actorList as UiState.Success).data as List<ActorVO>)
+
+                        }
+
+                        else -> {
+                            CircularProgressIndicatorView()
+                        }
+                    }
                     Spacer(modifier = Modifier.height(20.dp))
 
                 }
@@ -123,6 +191,60 @@ fun HomePage(
         }
 
 
+    }
+
+}
+
+@Composable
+fun GenresView(
+    tabUiState: UiState?,
+    selectedGenre: Int,
+    onSelectTab: (Int?, Int?) -> Unit,
+    modifier: Modifier = Modifier
+) {
+    var spacer = Spacer(modifier = Modifier.height(2.dp))
+    when (tabUiState) {
+        is UiState.Loading -> spacer
+        is UiState.Error -> spacer
+        is UiState.Success -> {
+            val tabs = tabUiState.data as List<GenresVO>
+            val background = colorResource(id = R.color.colorPrimary)
+
+            if (!tabs.isNullOrEmpty()) ScrollableTabRow(
+                selectedTabIndex = selectedGenre,
+                backgroundColor = background,
+                edgePadding = 0.dp,
+                indicator = { tabPositions ->
+                    TabRowDefaults.Indicator(
+                        color = R.color.colorAccent.colorR(), // Change this to your desired color
+                        height = 4.dp,
+                        modifier = Modifier.tabIndicatorOffset(tabPositions[selectedGenre])
+                    )
+                }
+            ) {
+
+                tabs?.forEachIndexed { index, genre ->
+                    val color =
+                        if (index == selectedGenre) Color.White else colorResource(id = R.color.colorSecondaryText)
+
+                    Tab(text = {
+                        Text(
+                            genre?.name ?: "",
+                            color = color,
+                            fontSize = dimensionResource(id = R.dimen.text_regular_2x).value.sp
+                        )
+                    },
+                        selected = index == genre?.id,
+                        onClick = { onSelectTab(index, genre?.id) }
+                    )
+                }
+            }
+            else Text(text = "Empty List", color = Color.White, textAlign = TextAlign.Center)
+        }
+
+        else -> {
+            spacer
+        }
     }
 
 }
@@ -193,44 +315,45 @@ fun MoviesTimeSection(modifier: Modifier = Modifier) {
 
 }
 
+
 @Composable
 fun HorizontalMovieSection(
     modifier: Modifier = Modifier,
-    sectionTitle: String, movieList: UiState?,
+    sectionTitle: String?,
+    movieList: UiState?,
     onClickMovie: (MovieVO) -> Unit
 ) {
-    Column() {
-        Text(
-            text = sectionTitle,
-            color = Color.White,
-            fontWeight = FontWeight.Bold,
-            fontSize = 14.sp,
-            modifier = Modifier.padding(start = dimensionResource(id = R.dimen.margin_card_medium_2))
-        )
-        Spacer(modifier = Modifier.height(20.dp))
-        when (movieList) {
-            is UiState.Loading -> {
+    Box(modifier = modifier) {
+        Column {
+            if (sectionTitle != null) {
+                Text(
+                    text = sectionTitle,
+                    color = Color.White,
+                    fontWeight = FontWeight.Bold,
+                    fontSize = 14.sp,
+                    modifier = Modifier.padding(start = dimensionResource(id = R.dimen.margin_card_medium_2))
+                )
+            } else Box(modifier = Modifier.wrapContentSize())
+            Spacer(modifier = Modifier.height(20.dp))
+            when (movieList) {
+                is UiState.Loading -> {
+                    CircularProgressIndicatorView()
+                }
 
-                Box(
-                    modifier = Modifier.fillMaxWidth()
-                ) {
-                    CircularProgressIndicator(
-                        modifier = Modifier.align(alignment = Alignment.Center),
-                        color = colorResource(id = R.color.colorAccent)
+                is UiState.Error -> Text(
+                    text = "Error happened", color = Color.White
+                )
+
+                is UiState.Success -> {
+                    HorizontalListSection(
+                        movieList = movieList.data as List<MovieVO>,
+                        onClickMovie = onClickMovie
                     )
                 }
-            }
-            is UiState.Error -> Text(
-                text = "Error happened", color = Color.White
-            )
-            is UiState.Success -> {
-                HorizontalListSection(
-                    movieList = (movieList as UiState.Success).movieList,
-                    onClickMovie = onClickMovie
-                )
-            }
-            else -> {
-                Text(text = "Else ${movieList}", color = Color.White)
+
+                else -> {
+                    Text(text = "Else ${movieList}", color = Color.White)
+                }
             }
         }
     }
@@ -275,10 +398,11 @@ fun HorizontalListSection(
                         overflow = TextOverflow.Ellipsis,
                     )
                     Row(
-                        modifier = Modifier.wrapContentSize(), verticalAlignment = Alignment.Bottom
+                        modifier = Modifier.wrapContentSize(),
+                        verticalAlignment = Alignment.Bottom
                     ) {
                         Text(
-                            text = "8.20",
+                            text = String.format("%.1f", item.voteAverage) ?: "8.20",
                             color = Color.White,
                             fontSize = 14.sp,
                             modifier = Modifier.padding(top = 4.dp)
@@ -288,9 +412,13 @@ fun HorizontalListSection(
                                 .wrapContentSize()
                                 .padding(start = 8.dp),
                             factory = { context ->
-                                RatingBar(context, null, android.R.attr.ratingBarStyleSmall).apply {
+                                RatingBar(
+                                    context,
+                                    null,
+                                    android.R.attr.ratingBarStyleSmall
+                                ).apply {
                                     this.numStars = 5;
-                                    this.rating = 5F;
+                                    this.rating = item.getRatingBasedOnFiveStars();
                                     this.setIsIndicator(true);
                                     this.stepSize = 1F;
                                     val drawable = progressDrawable.mutate()
@@ -320,7 +448,9 @@ fun AppBarView(modifier: Modifier = Modifier) {
         contentColor = Color.White,
         title = {
             Text(
-                text = "Discover", textAlign = TextAlign.Center, modifier = Modifier.fillMaxWidth()
+                text = "Discover",
+                textAlign = TextAlign.Center,
+                modifier = Modifier.fillMaxWidth()
             )
         },
         navigationIcon = {
@@ -346,6 +476,7 @@ fun AppBarView(modifier: Modifier = Modifier) {
     )
 }
 
+
 @Composable
 fun CarouselWithDots(modifier: Modifier = Modifier, nowPlayingMovieList: List<MovieVO>?) {
 
@@ -357,12 +488,13 @@ fun CarouselWithDots(modifier: Modifier = Modifier, nowPlayingMovieList: List<Mo
     ) {
         BannerView(mBannerAdapter = mBannerAdapter)
     }
+
 }
+
 
 @Preview(showBackground = true, showSystemUi = true)
 @Composable
 fun DefaultPreview() {
     AnimeComposeTheme {
-//        HomePage()
     }
 }

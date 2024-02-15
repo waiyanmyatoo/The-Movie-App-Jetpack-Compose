@@ -19,7 +19,8 @@
     <string name="lbl_original_title">Original Title: </string>
     <string name="lbl_type">Type: </string>
     <string name="lbl_production">Production: </string>
-    <string name="lbl_premiere">Premiere</string>
-    <string name="lbl_description">Description:</string>
+    <string name="lbl_premiere">Premiere: </string>
+    <string name="lbl_description">Description: </string>
     <string name="LBL_about_films">ABOUT FILMS</string>
+    <string name="lbl_play_trailer">PLAY TRAILER</string>
 </resources>
