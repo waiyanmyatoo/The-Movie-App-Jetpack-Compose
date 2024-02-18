@@ -1,6 +1,12 @@
 package com.example.animecompose.viewmodel
 
-import androidx.lifecycle.*
+import android.util.Log
+import androidx.lifecycle.LiveData
+import androidx.lifecycle.MediatorLiveData
+import androidx.lifecycle.MutableLiveData
+import androidx.lifecycle.ViewModel
+import androidx.lifecycle.asLiveData
+import androidx.lifecycle.viewModelScope
 import com.example.animecompose.data.models.MovieModel
 import com.example.animecompose.data.vos.GenresVO
 import com.example.animecompose.data.vos.MovieVO
@@ -21,9 +27,8 @@ class HomeViewModel @Inject constructor(
     )
     var nowPlayingMoviesLiveData: LiveData<List<MovieVO>> = _nowPlayingMoviesLiveData
 
-    private var _popularMoviesLiveData: MediatorLiveData<UiState> =
-        MediatorLiveData(UiState.Loading)
-    var popularMoviesLiveData: LiveData<UiState> = _popularMoviesLiveData
+    private var _popularMoviesLiveData = MediatorLiveData<UiState>(UiState.Loading)
+    val popularMoviesLiveData = _popularMoviesLiveData
 
     private var _genres: MediatorLiveData<UiState> = MediatorLiveData(UiState.Loading)
     var genres: LiveData<UiState> = _genres
@@ -42,6 +47,8 @@ class HomeViewModel @Inject constructor(
 
 
     fun getInitialData() {
+
+
         viewModelScope.launch {
             mMovieModel.getNowPlayingMovies({
                 _nowPlayingMoviesLiveData.postValue(it)
@@ -49,39 +56,102 @@ class HomeViewModel @Inject constructor(
 //                Log.d("Error ", "getInitialData: $it")
             })
 
+
             getPopularMovies()
 
+            getMovieGenres()
 
-            _genres.addSource(mMovieModel.getMoviesGenres().asLiveData()) {
-                _genres.postValue(it)
-                if (it is UiState.Success) {
-                    val data = it.data as List<GenresVO>?
-                    getMoviesByGenres(data?.first()?.id?.toString())
-                }
-            }
+            getPopularPeople()
 
-            _actorList.addSource(mMovieModel.getPopularPeople().asLiveData()) {
-                _actorList.postValue(it)
-            }
 
         }
+    }
+
+    private suspend fun getPopularPeople() {
+        try {
+            mMovieModel.getPopularPeople()?.let {
+                mMovieModel.savePopularPeopleToDb(it)
+            }
+
+            _actorList.addSource(mMovieModel.getPopularPeopleFromDb().asLiveData()) {
+                it?.let {
+                    _actorList.postValue(UiState.Success(it))
+                }
+            }
+        } catch (e: Exception) {
+            _actorList.postValue(UiState.Error(e.localizedMessage))
+        }
+
     }
 
     suspend fun getPopularMovies() {
         try {
-            val pMovieList = mMovieModel.getPopularMovies()
-            _popularMoviesLiveData.postValue(UiState.Success(data = pMovieList))
+            _popularMoviesLiveData.addSource(mMovieModel.getMoviesByType("popular").asLiveData()) {
+                _popularMoviesLiveData.postValue(UiState.Success(it))
+            }
+            val pMovieList = mMovieModel.getPopularMovies().map { movieVO ->
+                movieVO.apply {
+                    insertionTimestamp  = System.nanoTime()
+                }
+            }
+            mMovieModel.saveAllMovies(pMovieList)
         } catch (error: Exception) {
             _popularMoviesLiveData.postValue(UiState.Error(error.localizedMessage.toString()))
+        }
+    }
+
+    suspend fun getMovieGenres() {
+        try {
+            getAllGenresFromDb()
+//            _genres.addSource(mMovieModel.getAllGenresFromDb().asLiveData()) {
+//                _genres.postValue(UiState.Success(it))
+//            }
+            mMovieModel.getMoviesGenres()?.let {
+                it?.let {
+                    val data = it as List<GenresVO>?
+                    getAllGenresFromDb()
+                    getMoviesByGenres(data?.first()?.id ?: 0)
+                }
+            }
+        } catch (e: Exception) {
+            _genres.postValue(UiState.Error(e.localizedMessage))
+        }
+    }
+
+    fun getMoviesByGenres(genreId: Int?) {
+        try {
+            viewModelScope.launch {
+                getMoviesByGenresFromDB(genreId)
+                mMovieModel.getMoviesByGenres(genreId?.toString() ?: "28")?.let {
+//                    _movieByGenre.postValue(UiState.Success(it));
+                    if(!it.isNullOrEmpty()){
+                        it?.forEach {
+                           val movieFromDb = mMovieModel.getMovieByIdOneTime(it.id ?: 0)
+                            Log.i("TAGMovie", "getMoviesByGenres: ${it.title}")
+                            if (movieFromDb == null) mMovieModel.saveMovie(it.apply { insertionTimestamp = System.nanoTime() }) else null
+                        }
+                    }
+                    getMoviesByGenresFromDB(genreId)
+                }
+            }
+        } catch (e: Exception) {
+            _movieByGenre.postValue(UiState.Error(e.localizedMessage))
         }
 
     }
 
-    fun getMoviesByGenres(genreId: String?) {
-        viewModelScope.launch {
-            _movieByGenre.addSource(mMovieModel.getMoviesByGenres(genreId).asLiveData()) {
-//                Log.i("Movie by genres", "getMoviesByGenres:")
-                _movieByGenre.postValue(it);
+    fun getAllGenresFromDb() {
+        mMovieModel.getAllGenresFromDb()?.let {
+            _genres.postValue(UiState.Success(it))
+
+        }
+    }
+
+
+    fun getMoviesByGenresFromDB(genreId: Int?){
+        mMovieModel.getMoviesByGenresFromDB(genreId ?: 28)?.let {
+            if(!it.isNullOrEmpty()) {
+                _movieByGenre.postValue(UiState.Success(it));
             }
         }
     }

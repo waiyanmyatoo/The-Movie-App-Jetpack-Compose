@@ -12,7 +12,7 @@ class MovieVOTypeConverter {
     private val gson = Gson()
 
     @TypeConverter
-    fun fromGenresVOList(genresVO: List<GenresVO>): String? {
+    fun fromGenresVOList(genresVO: List<GenresVO>?): String? {
         return if(genresVO == null) null else gson.toJson(genresVO)
     }
 
@@ -22,7 +22,7 @@ class MovieVOTypeConverter {
     }
 
     @TypeConverter
-    fun fromProductionCompaniesVOList(productionCompaniesVO: List<ProductionCompaniesVO>): String? {
+    fun fromProductionCompaniesVOList(productionCompaniesVO: List<ProductionCompaniesVO>?): String? {
         return if(productionCompaniesVO == null) null else gson.toJson(productionCompaniesVO)
     }
 
@@ -32,7 +32,7 @@ class MovieVOTypeConverter {
     }
 
     @TypeConverter
-    fun fromSpokenLanguagesVOList(spokenLanguage: List<SpokenLanguagesVO>): String? {
+    fun fromSpokenLanguagesVOList(spokenLanguage: List<SpokenLanguagesVO>?): String? {
         return if(spokenLanguage == null) null else gson.toJson(spokenLanguage)
     }
 
@@ -43,7 +43,7 @@ class MovieVOTypeConverter {
 
 
     @TypeConverter
-    fun fromProductionCountriesVOList(productionCountries: List<ProductionCountriesVO>): String? {
+    fun fromProductionCountriesVOList(productionCountries: List<ProductionCountriesVO>?): String? {
         return if(productionCountries == null) null else gson.toJson(productionCountries)
     }
 
@@ -59,6 +59,6 @@ class MovieVOTypeConverter {
 
     @TypeConverter
     fun toGenresIdList(genresIdList: String?): List<Int>? {
-        return if(genresIdList == null) null else gson.fromJson(genresIdList, object : TypeToken<List<ProductionCountriesVO>>() {}.type)
+        return if(genresIdList == null) null else gson.fromJson(genresIdList, object : TypeToken<List<Int>>() {}.type)
     }
 }

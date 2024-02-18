@@ -1,5 +1,6 @@
 package com.example.animecompose.data.vos
 
+import androidx.room.ColumnInfo
 import androidx.room.Entity
 import androidx.room.PrimaryKey
 import com.google.gson.annotations.SerializedName
@@ -63,6 +64,11 @@ data class MovieVO(
     @SerializedName("spoken_languages") var spokenLanguages: List<SpokenLanguagesVO>?,
     @SerializedName("status") var status: String? = null,
     @SerializedName("tagline") var tagline: String? = null,
+
+    var type: String?,
+
+    @ColumnInfo(defaultValue = "CURRENT_TIMESTAMP")
+    var insertionTimestamp: Long?
 
     ) {
     fun getRatingBasedOnFiveStars(): Float {

@@ -3,8 +3,10 @@ plugins {
     id 'org.jetbrains.kotlin.android'
     id 'org.jetbrains.kotlin.kapt'
     id 'com.google.dagger.hilt.android'
+    id 'com.google.gms.google-services'
 }
 
+apply plugin: 'com.google.firebase.crashlytics'
 
 android {
     namespace 'com.example.animecompose'
@@ -115,5 +117,12 @@ dependencies {
     implementation "com.google.dagger:hilt-android:2.44"
     kapt "com.google.dagger:hilt-compiler:2.44"
     implementation 'androidx.hilt:hilt-navigation-compose:1.0.0'
+
+    // firebase
+    // Import the BoM for the Firebase platform
+    implementation platform('com.google.firebase:firebase-bom:31.0.0')
+
+    // Declare the dependency for the Crashlytics library
+    implementation 'com.google.firebase:firebase-crashlytics-ktx'
 
 }

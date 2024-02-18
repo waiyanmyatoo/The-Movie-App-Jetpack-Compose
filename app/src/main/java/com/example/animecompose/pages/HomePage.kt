@@ -36,6 +36,7 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.rounded.Menu
 import androidx.compose.material.icons.rounded.Search
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.livedata.observeAsState
 import androidx.compose.runtime.mutableStateOf
@@ -146,7 +147,7 @@ fun HomePage(
                         genres, selectedGenreIndex,
                         { index, id ->
                             selectedGenreIndex = index ?: 0
-                            homeViewModel.getMoviesByGenres(id?.toString())
+                            homeViewModel.getMoviesByGenres(id)
                         },
                     )
                     HorizontalMovieSection(
@@ -341,7 +342,7 @@ fun HorizontalMovieSection(
                 }
 
                 is UiState.Error -> Text(
-                    text = "Error happened", color = Color.White
+                    text = "Error: ${movieList.error}", color = Color.White
                 )
 
                 is UiState.Success -> {

@@ -2,8 +2,6 @@ package com.example.animecompose.data.models.Impls
 
 import android.annotation.SuppressLint
 import android.util.Log
-import androidx.lifecycle.LiveData
-import androidx.lifecycle.asLiveData
 import com.example.animecompose.data.models.BaseModel
 import com.example.animecompose.data.models.MovieModel
 import com.example.animecompose.data.vos.ActorVO
@@ -14,13 +12,11 @@ import com.example.animecompose.persistence.dao.ActorDao
 import com.example.animecompose.persistence.dao.GenreDao
 import com.example.animecompose.persistence.dao.MovieCreditDao
 import com.example.animecompose.persistence.dao.MovieDao
-import com.example.animecompose.state.UiState
 import io.reactivex.rxjava3.android.schedulers.AndroidSchedulers
 import io.reactivex.rxjava3.schedulers.Schedulers
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.Flow
-import kotlinx.coroutines.flow.flow
-import kotlinx.coroutines.flow.flowOn
+import kotlinx.coroutines.runBlocking
 import kotlinx.coroutines.withContext
 import okio.IOException
 import javax.inject.Inject
@@ -51,13 +47,13 @@ class MovieModelImpl @Inject constructor(
 
     @SuppressLint("CheckResult")
     override suspend fun getPopularMovies(
-//        onResponse: (UiState?) -> Unit
     ): List<MovieVO> {
 
         return withContext(Dispatchers.IO) {
             val response = mTheMovieApi.getPopularMovies();
             if (response.isSuccessful) {
-                response.body()?.results ?: throw IOException("Empty response")
+                response.body()?.results?.map { mv -> mv.copy(type = "popular") }
+                    ?: throw IOException("Empty response")
             } else {
                 throw IOException(
                     "Failed to fetch popular movies: ${
@@ -102,32 +98,27 @@ class MovieModelImpl @Inject constructor(
         return movieDetails
     }
 
-    override suspend fun getMoviesGenres(): Flow<UiState> {
+    override suspend fun getMoviesGenres(): List<GenresVO> {
 
-        val genres: Flow<UiState> = flow {
+        val genres = runBlocking(Dispatchers.IO) {
 
-            emit(UiState.Loading)
             try {
 
                 val response = mTheMovieApi.getMoviesGenres()
                 if (response.isSuccessful) {
 //                    emit(UiState.Success(response.body()?.genres))
-                    response.body()?.genres.let {
-                        saveMoviesGenres(it!!)
-                        genreDao.getGenres().collect {
-                            if (it.isNullOrEmpty()) {
-                                emit(UiState.Loading)
-                            }
-                            emit(UiState.Success(data = it))
-                        }
-                    }
+                    response.body()?.genres ?: throw Exception("Error: There is not genres!")
                 } else {
-                    emit(UiState.Error(response.errorBody().toString()))
+                    throw Exception("Failed to fetch genres: ${response.errorBody().toString()}")
                 }
             } catch (e: Exception) {
-                emit(UiState.Error(e.localizedMessage))
+                throw e
             }
-        }.flowOn(Dispatchers.IO)
+        }
+
+        genres?.let {
+            saveMoviesGenres(it)
+        }
 
         return genres
     }
@@ -136,30 +127,26 @@ class MovieModelImpl @Inject constructor(
         genreDao.saveGenres(genres)
     }
 
-    override suspend fun getPopularPeople(): Flow<UiState> {
-        val people: Flow<UiState> = flow<UiState> {
-            emit(UiState.Loading)
+    override fun getAllGenresFromDb(): List<GenresVO> {
+        return runBlocking(Dispatchers.IO) {
+            genreDao.getGenresOneTime()
+        }
+    }
+
+    override suspend fun getPopularPeople(): List<ActorVO> {
+        val people = runBlocking(Dispatchers.IO) {
 
             try {
-
                 val response = mTheMovieApi.getPopularPeople()
                 if (response.isSuccessful) {
-                    response.body()?.results.let {
-                        savePopularPeopleToDb(it!!)
-                        getPopularPeopleFromDb().collect {
-                            print("reloaded")
-                            emit(UiState.Success(data = it))
-                        }
-                    }
+                    response.body()?.results ?: throw Exception("Error: There is no data!")
                 } else {
-                    emit(UiState.Error(response.errorBody().toString()))
+                    throw Exception(response.errorBody().toString())
                 }
             } catch (e: Exception) {
-                emit(UiState.Error(e.localizedMessage))
+                throw e
             }
-
-        }.flowOn(Dispatchers.IO)
-
+        }
         return people
     }
 
@@ -172,23 +159,27 @@ class MovieModelImpl @Inject constructor(
         return actorDao.loadAllActors()
     }
 
-    override suspend fun getMoviesByGenres(genreId: String?): Flow<UiState> {
-        val movies: Flow<UiState> = flow<UiState> {
-            emit(UiState.Loading)
+    override suspend fun getMoviesByGenres(genreId: String?): List<MovieVO> {
+        val movies = runBlocking(Dispatchers.IO) {
+
 
             try {
                 val response = mTheMovieApi.getMoviesByGenres(genre = genreId ?: "28")
                 if (response.isSuccessful) {
-                    emit(UiState.Success(data = response.body()?.results))
+                    response.body()?.results ?: throw Exception("Faile to fetch movies")
                 } else {
-                    emit(UiState.Error(response.errorBody().toString()))
+                    throw Exception(response.errorBody().toString())
                 }
             } catch (e: Exception) {
-                emit(UiState.Error(e.localizedMessage))
+                throw e
             }
-        }.flowOn(Dispatchers.IO)
+        }
 
         return movies
+    }
+
+    override fun getMoviesByGenresFromDB(genreId: Int): List<MovieVO> {
+        return runBlocking(Dispatchers.IO) { movieDao.getMoviesByGenresOneTime(genreId) }
     }
 
     override suspend fun getMovieCredits(movieId: String): MovieCreditResponse {
@@ -221,8 +212,9 @@ class MovieModelImpl @Inject constructor(
     }
 
     // Db actions
-    override suspend fun saveAllMovies(moives: List<MovieVO>) {
-
+    override suspend fun saveAllMovies(movies: List<MovieVO>) {
+        movieDao.saveAllMovies(movies)
+        Log.i("movies", "saveAllMovies: ")
     }
 
     override suspend fun saveMovie(movie: MovieVO) {
@@ -230,8 +222,16 @@ class MovieModelImpl @Inject constructor(
         Log.i("movie", "saveMovie: saved")
     }
 
+    override suspend fun updateMovie(movie: MovieVO) {
+        movieDao.updateMovie(movie)
+    }
+
     override fun getMovieByIdFromDb(movieId: Int): Flow<MovieVO> {
         return movieDao.getMovieDetailsById(movieId)
+    }
+
+    override suspend fun getMovieByIdOneTime(movieId: Int): MovieVO {
+        return movieDao.getMovieByIdOneTime(movieId)
     }
 
     override suspend fun saveMovieCreditToDb(movieCreditResponse: MovieCreditResponse) {
@@ -241,5 +241,10 @@ class MovieModelImpl @Inject constructor(
 
     override fun getMovieCreditFromDb(movieId: Int): Flow<MovieCreditResponse> {
         return movieCreditDao.getMovieCreditById(movieId)
+    }
+
+    override fun getMoviesByType(movieType: String?): Flow<List<MovieVO>> {
+        return movieDao.getMoviesByType(movieType ?: "popular")
+//       return movieDao.getAllMovies()
     }
 }

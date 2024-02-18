@@ -1,5 +1,6 @@
 package com.example.animecompose.viewmodel
 
+import android.util.Log
 import androidx.lifecycle.LiveData
 import androidx.lifecycle.MediatorLiveData
 import androidx.lifecycle.ViewModel
@@ -33,14 +34,34 @@ class MovieDetailsViewModel @Inject constructor(
 
 
         viewModelScope.launch(Dispatchers.IO) {
-            _movieDetails.addSource(_mMovieModel.getMovieByIdFromDb(movieId).asLiveData()) {
-                getMovieFromDB(it)
-            }
-
+//            _movieDetails.addSource(_mMovieModel.getMovieByIdFromDb(movieId).asLiveData()) {
+//                getMovieFromDB(it)
+//            }
 
             _mMovieModel.getMovieDetails(movieId.toString()).let {
                 runCatching {
-                    _mMovieModel.saveMovie(it)
+                    it?.let { id ->
+                        val movieFromDbToSync = _mMovieModel.getMovieByIdOneTime(movieId)
+                        if (it == movieFromDbToSync) {
+                            Log.i(
+                                "TAGEqu",
+                                "getMovieDetails: True ${it.hashCode()} ${movieFromDbToSync.hashCode()} \n ${it.id} ${movieFromDbToSync.id}"
+                            )
+                        } else {
+                            Log.i(
+                                "TAGEqu",
+                                "getMovieDetails: False ${it.hashCode()} ${movieFromDbToSync.hashCode()}  \n" +
+                                        " ${it.id} ${movieFromDbToSync.id}"
+                            )
+                            it.genreIds = movieFromDbToSync.genreIds
+                            it.type = movieFromDbToSync.type
+                            it.insertionTimestamp = movieFromDbToSync.insertionTimestamp
+                            _movieDetails.postValue(UiState.Success(it))
+                            _mMovieModel.saveMovie(it)
+
+                        }
+
+                    }
                 }.onFailure {
                     _movieDetails.postValue(UiState.Error(it.localizedMessage))
                 }

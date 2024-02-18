@@ -15,7 +15,7 @@ import com.example.animecompose.persistence.dao.GenreDao
 import com.example.animecompose.persistence.dao.MovieCreditDao
 import com.example.animecompose.persistence.dao.MovieDao
 
-@Database(version = 3, entities = arrayOf(ActorVO::class, GenresVO::class, MovieVO::class, MovieCreditResponse::class), exportSchema = false)
+@Database(version = 5, entities = arrayOf(ActorVO::class, GenresVO::class, MovieVO::class, MovieCreditResponse::class), exportSchema = false)
 @TypeConverters(KnownForVOListTypeConverter::class, MovieVOTypeConverter::class, MovieCreditTypeConverter::class)
 abstract class MovieAppDatabase : RoomDatabase() {
 

@@ -1,0 +1,29 @@
+{
+  "project_info": {
+    "project_number": "754106420111",
+    "project_id": "animecompose-5e11d",
+    "storage_bucket": "animecompose-5e11d.appspot.com"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:754106420111:android:e7a238bc76369ad37119fa",
+        "android_client_info": {
+          "package_name": "com.example.animecompose"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyBK4aThHh3VhxfkhKNQus5_2CmWgOzjSqI"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}
